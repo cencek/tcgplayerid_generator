@@ -1,0 +1,76 @@
+<html>
+  <head>
+    <title>TCGPlayer ID Generator by M Cencek</title>
+  </head>
+  <body>
+    <h1>TCGPlayer ID Generator</h1>
+    <h3>Put in MTG Set name and comma-separated list of collector numbers</h3>
+
+    <label for="set-name-input">Set Name:</label>
+    <input type="text" id="set-name-input">
+
+    <label for="collector-numbers-input">Collector Numbers:</label>
+    <input type="text" id="collector-numbers-input">
+
+    <button id="generate-tcgplayer-ids-button">Generate TCGPlayer IDs</button>
+
+    <br><br>
+
+    <table id="tcgplayer-ids-output">
+      <thead>
+        <tr>
+          <th>Collector Number</th>
+          <th>TCGPlayer ID</th>
+        </tr>
+      </thead>
+      <tbody id="tcgplayer-ids-output-body"></tbody>
+    </table>
+
+    <script>
+      const generateTCGPlayerIDsButton = document.getElementById("generate-tcgplayer-ids-button");
+      const setNameInput = document.getElementById("set-name-input");
+      const collectorNumbersInput = document.getElementById("collector-numbers-input");
+      const tcgplayerIDsOutputBody = document.getElementById("tcgplayer-ids-output-body");
+
+      generateTCGPlayerIDsButton.addEventListener("click", () => {
+        const setName = setNameInput.value;
+        const collectorNumbers = collectorNumbersInput.value.split(",").map(s => s.trim());
+
+        // Fetch TCGPlayer IDs from Scryfall API
+        const promises = collectorNumbers.map(collectorNumber => {
+          return fetch(`https://api.scryfall.com/cards/search?order=set&q=set:${setName}+number:${collectorNumber}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.data.length > 0) {
+                return { collectorNumber, tcgplayer_id: data.data[0].tcgplayer_id };
+              } else {
+                return null;
+              }
+            });
+        });
+
+        Promise.all(promises)
+          .then(results => {
+            // Remove any null values (for collector numbers that did not have a match)
+            results = results.filter(result => result !== null);
+
+            // Display the TCGPlayer IDs in a table
+            tcgplayerIDsOutputBody.innerHTML = "";
+            results.forEach(result => {
+              const tr = document.createElement("tr");
+              const collectorNumberTd = document.createElement("td");
+              collectorNumberTd.textContent = result.collectorNumber;
+              tr.appendChild(collectorNumberTd);
+
+              const tcgplayerIDTd = document.createElement("td");
+              tcgplayerIDTd.textContent = result.tcgplayer_id;
+              tr.appendChild(tcgplayerIDTd);
+
+              tcgplayerIDsOutputBody.appendChild(tr);
+});
+});
+});
+</script>
+
+  </body>
+</html>
